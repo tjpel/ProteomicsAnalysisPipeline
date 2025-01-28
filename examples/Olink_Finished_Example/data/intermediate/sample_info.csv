@@ -1,0 +1,8 @@
+Sample ID,Drug Taken,Exercise Performed
+Sample 1,No Drug,No Exercise
+Sample 2,No Drug,Exercise
+Sample 3,Half Dose,No Exercise
+Sample 4,Half Dose,Exercise
+Sample 5,Full Dose,No Exercise
+Sample 6,Full Dose,Exercise
+Sample 7,No Drug,Exercise

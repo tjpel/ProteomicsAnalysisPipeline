@@ -1,0 +1,98 @@
+{
+    "project_information" : {
+        "file_type": "Olink",
+        "relative_path": "examples/Olink_Finished_Example",
+        "raw_data_name": "Fake_Example_Olink_Data.xlsx"
+    },
+
+    "ordered_pipeline": {
+        "1": {
+            "Name" : "Remove Proteins with >=X% Values Missing in Each Group",
+            "Argument": 50
+        },
+        "2": {
+            "Name" : "Median Normalization"
+        },
+        "3": {
+            "Name" : "Impute Missing Values with X% of the Minimum Value of Sample",
+            "Argument": 50
+        },
+        "4": {
+            "Name" : "LogX Transformation",
+            "Argument": 2
+        }
+    },
+
+    "comparisons": {
+        "1": {
+            "Group 1": {
+                "Drug Taken": "No Drug"
+            },
+            "Group 2": {
+                "Drug Taken": "Half Dose,Full Dose"
+            },
+            "Name": "Drug Taken Case vs. Control"
+        },
+        "2": {
+            "Group 1": {
+                "Drug Taken": "No Drug"
+            },
+            "Group 2": {
+                "Drug Taken": "Half Dose"
+            },
+            "Group 3": {
+                "Drug Taken": "Full Dose"
+            },
+            "Name": "Drug Taken - All Groups"
+        },
+        "3": {
+            "Group 1": {
+                "Drug Taken": "No Drug",
+                "Exercise Performed": "No Exercise"
+
+            },
+            "Group 2": {
+                "Drug Taken": "Half Dose,Full Dose",
+                "Exercise Performed": "Exercise"
+            },  
+            "Name": "Both Pure Case vs. Pure Control"
+        }
+    },
+
+    "visualization_behavior": {
+        "show_interactive_figures_web": "False",
+        "write_fig_to_delivery": "True",
+        "delivery_format": "png",
+        "volcano": {
+            "P_value_threshold": 0.01,
+            "Log2FC_threshold": 1,
+            "annotations": "True"
+        },
+        "heatmap": {
+            "n_proteins": 20,
+            "line_distance_multiplier": 0.02,
+            "text_distance_differential": 0.2,
+            "color_scale": "ice"
+        }
+    },
+
+    "analysis_behavior": {
+        "write_to_intermediate": "True",
+        "mean_type": "Arithmetic"
+    },
+
+    "paths": {
+        "no_processing": "data/intermediate/no_processing.csv",
+        "dropped_proteins_list": "data/intermediate/dropped_proteins_list.csv",
+        "pre_transformation": "data/intermediate/pre_transformation.csv",
+        "post_pipeline": "data/intermediate/post_pipeline.csv",
+        "sample_info": "data/intermediate/sample_info.csv",
+        "fold_change_dataset": "data/intermediate/fold_change_dataset.csv"
+    },
+
+    "debug_behavior": {
+        "verbose": "False",
+        "time_functions": "False"
+    }
+    
+}
