@@ -39,9 +39,11 @@ def output_visualization(fig, comparison_num: int, file_name: str):
                 fig.write_image(delivery_viz_path_to_file, format='png', scale=10)
             case 'pdf':
                 fig.write_image(delivery_viz_path_to_file, format='pdf', scale=10)
+            case 'svg':
+                fig.write_image(delivery_viz_path_to_file, format='svg', scale=10)
             case _:
                 print("config['visualization_behavior']['delivery_format'] is not an accepted format.\n" +
-                      "Must be one of the following: [jpg, png, pdf]")
+                      "Must be one of the following: [jpg, png, pdf, svg]")
 
     if eval(config['visualization_behavior']['show_interactive_figures_web']):
         fig.show()

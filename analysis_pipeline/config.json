@@ -62,7 +62,7 @@
     "visualization_behavior": {
         "show_interactive_figures_web": "False",
         "write_fig_to_delivery": "True",
-        "delivery_format": "png",
+        "delivery_format": "svg",
         "volcano": {
             "P_value_threshold": 0.01,
             "Log2FC_threshold": 1,
