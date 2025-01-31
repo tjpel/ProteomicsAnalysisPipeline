@@ -11,6 +11,8 @@ First, install Python version 3.12 or later.
 Next, install the necessary packages using one of the following methods:
     Pip: `pip install -r requirements.txt`
     Conda: With an active conda environment, `conda install --file requirements.txt`
+Finally, if you wish to create `.svg` visualization files, you must install the following library through pip.
+    `pip install kaleido`
 
 ### Data and Directory Preparation
 For the pipeline to perform correctly, the input must match the expected format. First, a directory must be prepared for the input data. The directory should have a `data` directory within it, and there should be a `raw` directory within that.
