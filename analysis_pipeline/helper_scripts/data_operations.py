@@ -4,6 +4,7 @@ import json
 import os
 from collections.abc import Callable
 import scipy.stats as stats
+from statsmodels.stats.multitest import multipletests
 
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, NamedStyle, Alignment, Font, Border, Side
@@ -81,10 +82,12 @@ def sort_key(col):
             col_type = 0
         elif "Log2 Fold Change" in col:
             col_type = 1
-        elif "P-value" in col:
+        elif "P-value" in col and (not "FDR" in col):
             col_type = 2
-        elif "Missing Values" in col:
+        elif "P-value" in col:
             col_type = 3
+        elif "Missing Values" in col:
+            col_type = 4
         else:
             col_type = 99  # Default fallback if type is unrecognized
         return (0, comp_num, col_type, col)
@@ -173,11 +176,21 @@ def prepare_analysis_dataset() -> pd.DataFrame:
 
                     group1_missing[protein] = f"{group1_protein.isna().sum()} / {len(group1_protein)}"
                     group2_missing[protein] = f"{group2_protein.isna().sum()} / {len(group2_protein)}"
+                
+                p_values_series = pd.Series(t_test_p_values)
+                valid_mask = p_values_series.notna()
 
+                # Apply FDR correction only on valid (non-NaN) p-values
+                _, p_vals_corrected, _, _ = multipletests(p_values_series[valid_mask].values, alpha=0.05, method='fdr_bh')
+
+                # Create a new series with NaNs in the correct positions
+                corrected_p_values_series = pd.Series(np.nan, index=p_values_series.index)
+                corrected_p_values_series[valid_mask] = p_vals_corrected
 
                 output_df[f"Comparison {comparison_num}: {group1_name} Mean"] = pd.Series(group1_means)
                 output_df[f"Comparison {comparison_num}: {group2_name} Mean"] = pd.Series(group2_means)
                 output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"] = pd.Series(t_test_p_values)
+                output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} FDR-adj. P-value"] = pd.Series(corrected_p_values_series, index=p_values_series.index)
                 output_df[f"Comparison {comparison_num}: {group1_name} Missing Values"] = pd.Series(group1_missing)
                 output_df[f"Comparison {comparison_num}: {group2_name} Missing Values"] = pd.Series(group2_missing)
 

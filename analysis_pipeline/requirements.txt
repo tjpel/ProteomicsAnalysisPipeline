@@ -6,7 +6,7 @@ appnope=0.1.4=pyhd8ed1ab_1
 asttokens=3.0.0=pyhd8ed1ab_1
 attrs=24.3.0=pyh71513ae_0
 bzip2=1.0.8=h99b78c6_7
-ca-certificates=2024.12.14=hf0a4a13_0
+ca-certificates=2025.1.31=hf0a4a13_0
 comm=0.2.2=pyhd8ed1ab_1
 debugpy=1.8.11=py312hd8f9ff3_0
 decorator=5.1.1=pyhd8ed1ab_1
@@ -50,6 +50,7 @@ openssl=3.4.0=h81ee809_1
 packaging=24.2=pyhd8ed1ab_2
 pandas=2.2.3=py312hcd31e36_1
 parso=0.8.4=pyhd8ed1ab_1
+patsy=1.0.1=pyhd8ed1ab_1
 pexpect=4.9.0=pyhd8ed1ab_1
 pickleshare=0.7.5=pyhd8ed1ab_1004
 pip=24.3.1=pyh8b19718_2
@@ -76,6 +77,7 @@ scipy=1.15.1=py312hb7ffdcd_0
 setuptools=75.8.0=pyhff2d567_0
 six=1.17.0=pyhd8ed1ab_0
 stack_data=0.6.3=pyhd8ed1ab_1
+statsmodels=0.14.4=py312h755e627_0
 tenacity=9.0.0=pyhd8ed1ab_1
 threadpoolctl=3.5.0=pyhc1e730c_0
 tk=8.6.13=h5083fa2_1
