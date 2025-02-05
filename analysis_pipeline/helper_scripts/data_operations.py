@@ -21,12 +21,24 @@ config = get_config()
 def get_filetype_info(file_type: str) -> int:
     match file_type:
         case "Olink":
-            return 5, "Assay", (1, 5)
+            return {
+                "n_metadata_cols" : 5,
+                "primary_key_col": "Assay",
+                "sheet1_freeze_panes": (1, 5)
+            }
         case "TMT Phospho":
-            return 6, "Modifications in Master Proteins", (1, 0)
+            return {
+                "n_metadata_cols" : 6,
+                "primary_key_col": "Modifications in Master Proteins",
+                "sheet1_freeze_panes": (1, 0)
+            }
         
 DIR_PATH = config['project_information']['relative_path']
-METADATA_COL, PRIMARY_KEY_COL, SHEET1_FREEZE_PANES = get_filetype_info(config['project_information']['file_type'])
+
+filetype_info_dict = get_filetype_info(config['project_information']['file_type'])
+METADATA_COL = filetype_info_dict["n_metadata_cols"]
+PRIMARY_KEY_COL = filetype_info_dict["primary_key_col"]
+SHEET1_FREEZE_PANES = filetype_info_dict["sheet1_freeze_panes"]
 
 def load_intermediate_csv(prot_intermediate_id: str):
     if prot_intermediate_id == "sample_info":
