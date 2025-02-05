@@ -21,7 +21,12 @@ def get_config():
 config = get_config()
 
 DIR_PATH = config['project_information']['relative_path']
-METADATA_COL, PRIMARY_KEY_COL, _ = get_filetype_info(config['project_information']['file_type'])
+
+filetype_info_dict = get_filetype_info(config['project_information']['file_type'])
+METADATA_COL = filetype_info_dict["n_metadata_cols"]
+PRIMARY_KEY_COL = filetype_info_dict["primary_key_col"]
+SHEET1_FREEZE_PANES = filetype_info_dict["sheet1_freeze_panes"]
+HEATMAP_NAME_SCHEME = filetype_info_dict["heatmap_display_scheme"]
 
 def output_visualization(fig, comparison_num: int, file_name: str):
     delivery_viz_path_to_dir = os.path.join(DIR_PATH, f'delivery/visualizations/Comparison {comparison_num}')
@@ -232,7 +237,7 @@ def create_volcano_viz(filter_groups, comparison_num, analysis_dataset):
 
 heatmap_config = config["visualization_behavior"]["heatmap"]
 @debug
-def create_heatmap_viz(filter_groups, comparison_num, analysis_dataset):
+def create_heatmap_viz(filter_groups, comparison_num, analysis_dataset, protein_meta_data):
 
     filtered_columns = [col for col in analysis_dataset.columns if (
         col.startswith('Sample') or
@@ -281,6 +286,7 @@ def create_heatmap_viz(filter_groups, comparison_num, analysis_dataset):
 
             # Combine and sort in descending order
             filtered_df = pd.concat([top_n, bottom_n]).sort_values(by=target_column, ascending=False)
+            protein_meta_data = protein_meta_data[~protein_meta_data[PRIMARY_KEY_COL].duplicated(keep='first')]
 
             # Gather columns belonging to each group
             group1_columns = [col for col in analysis_dataset.columns if col in samples_in_comparison_groupwise[group1_name]]
@@ -298,6 +304,14 @@ def create_heatmap_viz(filter_groups, comparison_num, analysis_dataset):
                 f"<span style='color:{sample_colors.get(sample, 'black')}'>{sample}</span>"
                 for sample in filtered_df_samples.columns
             ]
+
+            #Display names on heatmap differs by data type
+            temp = protein_meta_data.join(filtered_df_samples, on=PRIMARY_KEY_COL, how="outer", validate="m:m").reset_index(drop=True) #used in HEATMAP_NAME_SCHEME
+            temp = temp.set_index(PRIMARY_KEY_COL)
+            temp = temp.loc[filtered_df_samples.index.intersection(temp.index)]  # Keep only matching rows
+            temp = temp.reset_index(drop=False)
+
+            filtered_df_samples.index = eval(HEATMAP_NAME_SCHEME)
 
             line_x_pos = 0.51 + (filtered_df_samples.shape[1] * heatmap_config["line_distance_multiplier"])
 

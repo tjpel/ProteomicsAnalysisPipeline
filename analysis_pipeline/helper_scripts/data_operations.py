@@ -24,13 +24,15 @@ def get_filetype_info(file_type: str) -> int:
             return {
                 "n_metadata_cols" : 5,
                 "primary_key_col": "Assay",
-                "sheet1_freeze_panes": (1, 5)
+                "sheet1_freeze_panes": (1, 5),
+                "heatmap_display_scheme": "temp['Assay']"
             }
         case "TMT Phospho":
             return {
                 "n_metadata_cols" : 6,
                 "primary_key_col": "Modifications in Master Proteins",
-                "sheet1_freeze_panes": (1, 0)
+                "sheet1_freeze_panes": (1, 0),
+                "heatmap_display_scheme": "temp['Assay'].str.upper() + ', ' + temp['Master Protein Accessions'].str.upper()"
             }
         
 DIR_PATH = config['project_information']['relative_path']
@@ -415,7 +417,7 @@ def output_delivery_dataset(analysis_dataset: pd.DataFrame, protein_meta_data: p
 
     #find imputed values
     raw_data["# Missing"] = raw_data.isnull().sum(axis=1)
-    raw_data = raw_data.loc[raw_data.index.isin(sheet_1["Assay"].values)]
+    raw_data = raw_data.loc[raw_data.index.isin(sheet_1[PRIMARY_KEY_COL].values)]
     raw_data.index = sheet_1.index
 
 

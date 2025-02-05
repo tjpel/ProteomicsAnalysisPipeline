@@ -77,7 +77,7 @@ for comparison_num, groups in config['comparisons'].items():
 
     create_volcano_viz(groups, comparison_num, analysis_dataset)
 
-    create_heatmap_viz(groups, comparison_num, analysis_dataset)
+    create_heatmap_viz(groups, comparison_num, analysis_dataset, protein_meta_data)
 
 print("Creating final dataset for delivery.")
 output_delivery_dataset(analysis_dataset, protein_meta_data)
