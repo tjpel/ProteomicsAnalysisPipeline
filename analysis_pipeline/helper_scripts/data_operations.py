@@ -6,9 +6,7 @@ from collections.abc import Callable
 import scipy.stats as stats
 from statsmodels.stats.multitest import multipletests
 
-from openpyxl import load_workbook
-from openpyxl.styles import PatternFill, NamedStyle, Alignment, Font, Border, Side
-from openpyxl.utils.cell import get_column_letter
+from openpyxl.styles import PatternFill, Alignment
 
 from .debug_wrapper import debug
 
@@ -91,11 +89,8 @@ def sort_key(col):
         else:
             col_type = 99  # Default fallback if type is unrecognized
         return (0, comp_num, col_type, col)
-    elif col.startswith("Sample"):
-        return (1, col)
     else:
-        # Default for other columns
-        return (2, col)
+        return (1, col)
 
 @debug
 def get_data_from_raw(raw_data_path: str):
@@ -155,6 +150,7 @@ def prepare_analysis_dataset() -> pd.DataFrame:
                 for protein in list(group1.index):
                     if isinstance(group1.loc[protein], pd.DataFrame) or isinstance(group2.loc[protein], pd.DataFrame):
                         print(f"Values in primary key column ({PRIMARY_KEY_COL}) are not unique. Please remove duplicate values in this column. This may be done in the configuration file by adding the 'Drop Duplicates' pipeline step.")
+                        print(f"Duplicate values: {group1[group1.index.duplicated()].index} and/or {group2[group2.index.duplicated()].index}")
                         quit()
                     
                     group1_protein = pd.to_numeric(group1.loc[protein], errors='coerce')
@@ -194,7 +190,7 @@ def prepare_analysis_dataset() -> pd.DataFrame:
                 output_df[f"Comparison {comparison_num}: {group1_name} Missing Values"] = pd.Series(group1_missing)
                 output_df[f"Comparison {comparison_num}: {group2_name} Missing Values"] = pd.Series(group2_missing)
 
-                if alr_transformed:
+                if alr_transformed or config['project_information']['file_type'] == "Olink":
                     output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] = pd.Series(group1_means) - pd.Series(group2_means)
                 else:
                     output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] = np.log2(pd.Series(group1_means) / pd.Series(group2_means))
@@ -268,6 +264,8 @@ def remove_missing_proteins_groupwise(protein_count_data: pd.DataFrame, sample_i
     protein_count_data = proteins_t.T
     protein_count_data.columns.name = None
     protein_count_data.index.name = PRIMARY_KEY_COL
+
+    protein_count_data.replace(0, np.nan, inplace=True)
 
     return protein_count_data
 

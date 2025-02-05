@@ -21,7 +21,7 @@ Within your `{project_directory}/data/raw` directory, you may put your input dat
 
 1. The file is in an .xlsx format.
 
-2. The first sheet is labeled "Data". This sheet's purpose is to provide and describe the proteins and their counts from the experiment. This sheet will contain metadata columns describing the proteins, along with protein counts for each sample.
+2. The first sheet is labeled "Data". This sheet's purpose is to provide and describe the proteins and their counts from the experiment. This sheet will contain metadata columns describing the proteins, along with protein counts for each sample. Each sample column **must** begin with "Sample ".
 
 3. The second sheet is labeled "Sample Information". This sheet describes which samples belong to which study groups. The first column, "Sample ID", will contain the names of samples, using the same names as they were given in the "Data" sheet. Each subsequent column will describe a category of study groups from the experiment, with the values of the column being study groups in the category. For example, a column "Drug Dose" may describe which samples have received a "Full Dose", "Half Dose", or "No Dose".
 
