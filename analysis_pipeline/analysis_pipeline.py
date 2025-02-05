@@ -83,5 +83,3 @@ print("Creating final dataset for delivery.")
 output_delivery_dataset(analysis_dataset, protein_meta_data)
 
 print("Finished! Please check the target directory for outputs.")
-
-

@@ -132,6 +132,7 @@ def prepare_analysis_dataset() -> pd.DataFrame:
     for comparison_num, study_groups in config['comparisons'].items():
 
         group_filtered_datasets = prepare_group_filtered_dict('post_pipeline', study_groups)
+        raw_data = load_intermediate_csv("no_processing")
 
         groups = [group for group in group_filtered_datasets.keys() if group != "Name"]
 
@@ -147,6 +148,8 @@ def prepare_analysis_dataset() -> pd.DataFrame:
                 group2_means = {}
                 group1_missing = {}
                 group2_missing = {}
+                group1_imputed = {}
+                group2_imputed = {}
                 for protein in list(group1.index):
                     if isinstance(group1.loc[protein], pd.DataFrame) or isinstance(group2.loc[protein], pd.DataFrame):
                         print(f"Values in primary key column ({PRIMARY_KEY_COL}) are not unique. Please remove duplicate values in this column. This may be done in the configuration file by adding the 'Drop Duplicates' pipeline step.")
@@ -172,6 +175,10 @@ def prepare_analysis_dataset() -> pd.DataFrame:
 
                     group1_missing[protein] = f"{group1_protein.isna().sum()} / {len(group1_protein)}"
                     group2_missing[protein] = f"{group2_protein.isna().sum()} / {len(group2_protein)}"
+
+                    if protein in raw_data.index:
+                        group1_imputed[protein] = f"{raw_data.loc[protein, group1.columns].isna().sum()} / {len(group1_protein)}"
+                        group2_imputed[protein] = f"{raw_data.loc[protein, group2.columns].isna().sum()} / {len(group2_protein)}"
                 
                 p_values_series = pd.Series(t_test_p_values)
                 valid_mask = p_values_series.notna()
@@ -189,6 +196,8 @@ def prepare_analysis_dataset() -> pd.DataFrame:
                 output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} FDR-adj. P-value"] = pd.Series(corrected_p_values_series, index=p_values_series.index)
                 output_df[f"Comparison {comparison_num}: {group1_name} Missing Values"] = pd.Series(group1_missing)
                 output_df[f"Comparison {comparison_num}: {group2_name} Missing Values"] = pd.Series(group2_missing)
+                output_df[f"Comparison {comparison_num}: {group1_name} Imputed Values"] = pd.Series(group1_imputed)
+                output_df[f"Comparison {comparison_num}: {group2_name} Imputed Values"] = pd.Series(group2_imputed)
 
                 if alr_transformed or config['project_information']['file_type'] == "Olink":
                     output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] = pd.Series(group1_means) - pd.Series(group2_means)
@@ -326,10 +335,10 @@ def impute_half_value(protein_count_data: pd.DataFrame, axis: int, percentage_of
     # Iterate over each column or row based on the specified axis
     for i in (protein_count_data.columns if axis == 1 else protein_count_data.index):
         if axis == 1:  # Column-wise
-            fill_value = protein_count_data[i].min() * percentage_of_min  # Min of the column times the percentage
+            fill_value = protein_count_data[i].min() * (percentage_of_min / 100)  # Min of the column times the percentage
             protein_count_data.loc[:, i] = protein_count_data.loc[:, i].fillna(fill_value)
         elif axis == 0:
-            fill_value = protein_count_data.loc[i].min() * percentage_of_min  # Min of the row times the percentage
+            fill_value = protein_count_data.loc[i].min() * (percentage_of_min / 100)  # Min of the row times the percentage
             protein_count_data.loc[i, :] = protein_count_data.loc[i, :].fillna(fill_value)
     
     return protein_count_data
@@ -373,6 +382,7 @@ def get_worksheet_name(current_worksheet: int, n_worksheets: int):
 @debug
 def output_delivery_dataset(analysis_dataset: pd.DataFrame, protein_meta_data: pd.DataFrame):
     sample_info = load_intermediate_csv('sample_info')
+    raw_data = load_intermediate_csv('no_processing')
 
     #split up analysis dataset columns -
     #   sheet 1: samples data + global missing + means
@@ -384,14 +394,22 @@ def output_delivery_dataset(analysis_dataset: pd.DataFrame, protein_meta_data: p
 
     #sheet 1: samples data + global missing + means
     sheet_1 = analysis_dataset[[col for col in analysis_dataset if "Sample" in col]]
+    n_metadata_col = len(protein_meta_data.columns) + 1
 
     sheet_1.reset_index(inplace=True)
     protein_meta_data[PRIMARY_KEY_COL] = protein_meta_data[PRIMARY_KEY_COL].astype(str)
     sheet_1[PRIMARY_KEY_COL] = sheet_1[PRIMARY_KEY_COL].astype(str)
     sheet_1 = protein_meta_data.merge(sheet_1, on=PRIMARY_KEY_COL, how="right")
 
+    #find imputed values
+    raw_data["# Missing"] = raw_data.isnull().sum(axis=1)
+    raw_data = raw_data.loc[raw_data.index.isin(sheet_1["Assay"].values)]
+    raw_data.index = sheet_1.index
+
+
     sheet_1["Assay Mean"] = sheet_1.iloc[:, len(protein_meta_data.columns):].apply(pd.to_numeric, errors='coerce').mean(axis=1)
-    sheet_1["Global Missing"] = sheet_1.iloc[:, len(protein_meta_data.columns)-1:-1].isnull().sum(axis=1).astype(str) + " / " + str(sheet_1.shape[1] - 1)
+    sheet_1["Global Missing"] = sheet_1.iloc[:, len(protein_meta_data.columns)-1:-2].isnull().sum(axis=1).astype(str) + " / " + str(sheet_1.shape[1] - n_metadata_col)
+    sheet_1["Global Imputed"] = raw_data["# Missing"].astype(str) + " / " + str(raw_data.shape[1]-1)
     sheets.append(sheet_1)
 
     #sheet 2: sample groups
@@ -430,8 +448,6 @@ def output_delivery_dataset(analysis_dataset: pd.DataFrame, protein_meta_data: p
     final_analysis_excel_path = os.path.join(DIR_PATH, "delivery/data/Data_With_Analysis.xlsx")
     with pd.ExcelWriter(final_analysis_excel_path, engine='openpyxl') as writer:
         workbook = writer.book
-
-        n_metadata_col = len(protein_meta_data.columns) + 1
 
         #Data Sheet 1
         sheets[0].to_excel(writer, sheet_name=get_worksheet_name(0, len(sheets)), index=False, freeze_panes=SHEET1_FREEZE_PANES)
