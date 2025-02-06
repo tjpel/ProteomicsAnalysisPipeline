@@ -28,6 +28,8 @@ protein_count_data, protein_meta_data, sample_info, study_group_info = get_data_
 pre_pipeline_path = os.path.join(DIR_PATH, config['paths']['no_processing'])
 protein_count_data.to_csv(pre_pipeline_path)
 
+alr_transformed = False
+
 print("Beginning pipeline steps.")
 for step_num, process_info in config['ordered_pipeline'].items():
 
@@ -50,6 +52,7 @@ for step_num, process_info in config['ordered_pipeline'].items():
         case r"Impute Missing Values with X% of the Minimum Value of Protein":
             protein_count_data = impute_half_value(protein_count_data, axis=0, percentage_of_min=process_info['Argument'])
         case "LogX Transformation":
+            alr_transformed = True
             protein_count_data = perform_log(protein_count_data, log=process_info['Argument'])
         case "Drop Duplicates":
             protein_count_data = drop_duplicates(protein_count_data)

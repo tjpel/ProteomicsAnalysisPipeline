@@ -131,17 +131,12 @@ def get_prot_with_sample_info(protein_count_data: pd.DataFrame, sample_info: pd.
     return prot_with_sample_info
 
 @debug
-def prepare_analysis_dataset() -> pd.DataFrame:
+def prepare_analysis_dataset(alr_transformed: bool) -> pd.DataFrame:
 
     #If we have log transformed the data previously, we'll then use the transformed data to calculate the following statistics
     #If we haven't previously transformed the data, we'll use the non-transformed data to calculate the following statistics
 
     output_df = load_intermediate_csv('post_pipeline')
-
-    if os.path.exists(os.path.join(DIR_PATH, config['paths']['pre_transformation'])):
-        alr_transformed = True
-    else:
-        alr_transformed = False
 
     for comparison_num, study_groups in config['comparisons'].items():
 
