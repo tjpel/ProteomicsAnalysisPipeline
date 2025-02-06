@@ -35,7 +35,7 @@ It is highly recommended that you use the examples as a reference to format the 
 Many aspects of the pipeline's behavior are controlled by the configuration file, `config.json`. This configuration file must be set up very particularly for the pipeline to perform as intended. Please refer to the example configuration as you set up the configuration for your project. These objects are ordered such that the objects closer to the top are more frequently edited throughout the course of setting up and performing an analysis. The following parent objects must be present:
 ##### "project_information"
 This object describes the basic information about the project. Objects within this include:
-- "file_type": Values: One of `["Olink", "TMT Phospho"]`. This object describes the type of file and data the pipeline should expect.
+- "file_type": Values: One of `["Olink", "TMT Phospho", "TMT Protein List"]`. This object describes the type of file and data the pipeline should expect.
 **Note**: pTyr is included in `"TMT Phospho"`.
 - "relative_path": A relative path to the project directory from where the analysis_pipeline.py script will be called from.
 - "raw_data_name": The name (including the `.xlsx` extension) of the raw data file.

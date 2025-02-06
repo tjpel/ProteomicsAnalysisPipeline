@@ -5,6 +5,7 @@ import os
 from collections.abc import Callable
 import scipy.stats as stats
 from statsmodels.stats.multitest import multipletests
+import warnings
 
 from openpyxl.styles import PatternFill, Alignment
 
@@ -18,21 +19,31 @@ def get_config():
 
 config = get_config()
 
+if eval(config["debug_behavior"]["supress_small_sample_warning"]):
+    warnings.filterwarnings('ignore', message='.*small')
+
 def get_filetype_info(file_type: str) -> int:
     match file_type:
         case "Olink":
             return {
-                "n_metadata_cols" : 5,
+                "n_metadata_cols": 5,
                 "primary_key_col": "Assay",
                 "sheet1_freeze_panes": (1, 5),
                 "heatmap_display_scheme": "temp['Assay']"
             }
         case "TMT Phospho":
             return {
-                "n_metadata_cols" : 6,
+                "n_metadata_cols": 6,
                 "primary_key_col": "Modifications in Master Proteins",
                 "sheet1_freeze_panes": (1, 0),
                 "heatmap_display_scheme": "temp['Assay'].str.upper() + ', ' + temp['Master Protein Accessions'].str.upper()"
+            }
+        case "TMT Protein List":
+            return {
+                "n_metadata_cols": 6,
+                "primary_key_col": "Majority Protein ID",
+                "sheet1_freeze_panes": (1, 0),
+                "heatmap_display_scheme": "temp['Gene Name'].str.upper()"
             }
         
 DIR_PATH = config['project_information']['relative_path']

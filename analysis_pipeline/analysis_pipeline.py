@@ -71,7 +71,7 @@ sample_info_path = os.path.join(DIR_PATH, config['paths']['sample_info'])
 sample_info.to_csv(sample_info_path, index=None)
 
 print("Preparing fold change and P-value information.")
-analysis_dataset = prepare_analysis_dataset()
+analysis_dataset = prepare_analysis_dataset(alr_transformed)
 
 for comparison_num, groups in config['comparisons'].items():
     print(f"Creating visualizations for comparison {comparison_num}.")

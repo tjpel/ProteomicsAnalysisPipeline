@@ -77,7 +77,6 @@
     },
 
     "analysis_behavior": {
-        "write_to_intermediate": "True",
         "mean_type": "Arithmetic"
     },
 
@@ -92,7 +91,8 @@
 
     "debug_behavior": {
         "verbose": "False",
-        "time_functions": "False"
+        "time_functions": "False",
+        "supress_small_sample_warning": "True"
     }
     
 }
