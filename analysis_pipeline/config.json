@@ -1,26 +1,23 @@
 {
     "project_information" : {
-        "file_type": "TMT Protein List",
-        "relative_path": "examples/TMT_Protein_List_Finished_Example",
-        "raw_data_name": "Fake_Example_TMT_Protein_List_Data.xlsx"
+        "file_type": "Olink",
+        "relative_path": "examples/Olink_Finished_Example",
+        "raw_data_name": "Fake_Example_Olink_Data.xlsx"
     },
 
     "ordered_pipeline": {
         "1": {
-            "Name": "Drop Duplicates"
-        },
-        "2": {
             "Name" : "Remove Proteins with >=X% Values Missing in Each Group",
             "Argument": 50
         },
-        "3": {
-            "Name": "Mean Normalization"
+        "2": {
+            "Name" : "Median Normalization"
         },
-        "4": {
+        "3": {
             "Name" : "Impute Missing Values with X% of the Minimum Value of Sample",
             "Argument": 50
         },
-        "5": {
+        "4": {
             "Name" : "LogX Transformation",
             "Argument": 2
         }
@@ -29,30 +26,36 @@
     "comparisons": {
         "1": {
             "Group 1": {
-                "Treatment": "WT"
+                "Drug Taken": "No Drug"
             },
             "Group 2": {
-                "Treatment": "T1"
+                "Drug Taken": "Half Dose,Full Dose"
             },
-            "Name": "WT vs. T1"
+            "Name": "Drug Taken Case vs. Control"
         },
         "2": {
             "Group 1": {
-                "Treatment": "WT"
+                "Drug Taken": "No Drug"
             },
             "Group 2": {
-                "Treatment": "T2"
+                "Drug Taken": "Half Dose"
             },
-            "Name": "WT vs. T2"
+            "Group 3": {
+                "Drug Taken": "Full Dose"
+            },
+            "Name": "Drug Taken - All Groups"
         },
         "3": {
             "Group 1": {
-                "Treatment": "WT"
+                "Drug Taken": "No Drug",
+                "Exercise Performed": "No Exercise"
+
             },
             "Group 2": {
-                "Treatment": "T1,T2"
-            },
-            "Name": "WT vs. T"
+                "Drug Taken": "Half Dose,Full Dose",
+                "Exercise Performed": "Exercise"
+            },  
+            "Name": "Both Pure Case vs. Pure Control"
         }
     },
 
@@ -63,12 +66,15 @@
         "volcano": {
             "P_value_threshold": 0.01,
             "Log2FC_threshold": 1,
-            "annotations": "False"
+            "annotations": 10
         },
         "heatmap": {
             "n_proteins": 20,
-            "line_distance_multiplier": 0.0275,
-            "text_distance_differential": 0.2,
+            "group_explaination_line": {
+                "on": "False",
+                "line_distance_multiplier": 0.02,
+                "text_distance_differential": 0.2
+            },
             "color_scale": "ice"
         }
     },

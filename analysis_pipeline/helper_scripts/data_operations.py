@@ -22,7 +22,7 @@ config = get_config()
 if eval(config["debug_behavior"]["supress_small_sample_warning"]):
     warnings.filterwarnings('ignore', message='.*small')
 
-def get_filetype_info(file_type: str) -> int:
+def get_filetype_info(file_type: str) -> dict:
     match file_type:
         case "Olink":
             return {
@@ -43,7 +43,7 @@ def get_filetype_info(file_type: str) -> int:
                 "n_metadata_cols": 6,
                 "primary_key_col": "Majority Protein ID",
                 "sheet1_freeze_panes": (1, 0),
-                "heatmap_display_scheme": "temp['Gene Name'].str.upper()"
+                "heatmap_display_scheme": "temp['Gene Name']" # + Protein
             }
         
 DIR_PATH = config['project_information']['relative_path']
@@ -326,7 +326,7 @@ def perform_simple_normalization(protein_count_data: pd.DataFrame, norm_func: Ca
         sample_value = norm_func(current_sample)
 
         for protein in current_sample.index:
-            protein_count_data.loc[protein, sample] -= sample_value
+            protein_count_data.loc[protein, sample] /= sample_value
 
     return protein_count_data
 

@@ -3,6 +3,7 @@ from sklearn.preprocessing import StandardScaler
 
 import plotly.express as px
 import plotly.graph_objects as go
+from scipy.stats import zscore
 import pandas as pd
 import json
 import os
@@ -152,26 +153,34 @@ def create_volcano_viz(filter_groups, comparison_num, analysis_dataset):
                 )
             )
 
-            if eval(config['visualization_behavior']['volcano']['annotations']):
+            n_annotations = config['visualization_behavior']['volcano']['annotations']
+            if n_annotations:
+                out_of_threshold["Annotation Rank"] = abs(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] * \
+                    -np.log10(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"]))
+                
+                out_of_threshold.sort_values(by=["Annotation Rank"], ascending=False, inplace=True)
+
+
                 fig.add_trace(
                     go.Scatter(
-                        x=out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"],
-                        y=-np.log10(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"]),
+                        x=out_of_threshold.head(n_annotations)[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"],
+                        y=-np.log10(out_of_threshold.head(n_annotations)[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"]),
                         mode="markers+text",
                         text=out_of_threshold.index,  # Protein name as index
                         textposition="top center",
                         marker=dict(color="red", size=5)
                         )
                 )
-            else:
-                fig.add_trace(
-                    go.Scatter(
-                        x=out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"],
-                        y=-np.log10(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"]),
-                        mode="markers",
-                        marker=dict(color="red", size=5)
-                    )
+
+            #plot sig. points with no annotations 
+            fig.add_trace(
+                go.Scatter(
+                    x=out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"],
+                    y=-np.log10(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"]),
+                    mode="markers",
+                    marker=dict(color="red", size=5)
                 )
+            )
 
 
             x_center = 0
@@ -279,26 +288,32 @@ def create_heatmap_viz(filter_groups, comparison_num, analysis_dataset, protein_
 
             # Specify the column to filter
             target_column = f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"
-
-            # Get the top n and bottom n rows based on the target column
-            top_n = analysis_dataset.nlargest(heatmap_n_proteins, target_column)
-            bottom_n = analysis_dataset.nsmallest(heatmap_n_proteins, target_column)
-
-            # Combine and sort in descending order
-            filtered_df = pd.concat([top_n, bottom_n]).sort_values(by=target_column, ascending=False)
-            protein_meta_data = protein_meta_data[~protein_meta_data[PRIMARY_KEY_COL].duplicated(keep='first')]
+            p_val_column = f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"
 
             # Gather columns belonging to each group
             group1_columns = [col for col in analysis_dataset.columns if col in samples_in_comparison_groupwise[group1_name]]
             group2_columns = [col for col in analysis_dataset.columns if col in samples_in_comparison_groupwise[group2_name]]
 
             # Create the new column order: Group 1 columns, Group 2 columns, then the target column
-            new_column_order = group1_columns + group2_columns + [target_column]
+            new_column_order = group1_columns + group2_columns + [target_column, p_val_column]
 
-            # Reorder the DataFrame
-            filtered_df = filtered_df[new_column_order]
+            temp_analysis = analysis_dataset[new_column_order]
+            temp_analysis_samples = temp_analysis.iloc[:, :-2]
+            temp_analysis_samples = temp_analysis_samples.apply(zscore)
+            temp_analysis.iloc[:, :-2] = temp_analysis_samples
 
-            filtered_df_samples = filtered_df.iloc[:, :-1]
+            sig_to_comparison = temp_analysis[temp_analysis[p_val_column] < 0.05]
+
+            # Get the top n and bottom n rows based on the target column
+            top_n = sig_to_comparison.nlargest(heatmap_n_proteins, target_column)
+            bottom_n = sig_to_comparison.nsmallest(heatmap_n_proteins, target_column)
+
+            # Combine and sort in descending order
+            filtered_df = pd.concat([top_n, bottom_n]).sort_values(by=target_column, ascending=False)
+            protein_meta_data = protein_meta_data[~protein_meta_data[PRIMARY_KEY_COL].duplicated(keep='first')]
+
+            filtered_df.drop_duplicates(inplace=True)
+            filtered_df_samples = filtered_df.iloc[:, :-2]
 
             colored_x_labels = [
                 f"<span style='color:{sample_colors.get(sample, 'black')}'>{sample}</span>"
@@ -313,57 +328,59 @@ def create_heatmap_viz(filter_groups, comparison_num, analysis_dataset, protein_
 
             filtered_df_samples.index = eval(HEATMAP_NAME_SCHEME)
 
-            line_x_pos = 0.51 + (filtered_df_samples.shape[1] * heatmap_config["line_distance_multiplier"])
-
-            annotation_text_group_i = f"Top {heatmap_n_proteins} proteins higher in <br>{filter_to_str(filter_groups[group1_name], True)}"
-            annotation_text_group_j = f"Top {heatmap_n_proteins} proteins higher in <br>{filter_to_str(filter_groups[group2_name], True)}"
-            
-            fixed_text_x_pos = line_x_pos + heatmap_config["text_distance_differential"]
-
             fig = px.imshow(
                 filtered_df_samples,
-                labels=dict(x="Sample", y=PRIMARY_KEY_COL, color="Protein Abundance<br>in Sample"),
+                labels=dict(x="Sample", y=PRIMARY_KEY_COL, color="Z-Score"),
                 x=colored_x_labels,
                 y=filtered_df_samples.index,
                 color_continuous_scale=heatmap_config["color_scale"],
+                color_continuous_midpoint=0,
                 title=f"Comparison {comparison_num}: Top {heatmap_n_proteins} proteins more abundant in {filter_to_str(filter_groups[group1_name])} v. {filter_to_str(filter_groups[group2_name])}",
             )
 
-            # Add vertical bar and annotation for "Proteins more abundant in group 1"
-            fig.add_shape(
-                type="line",
-                xref="paper", yref="paper",
-                x0=line_x_pos, x1=line_x_pos,
-                y0=0.5, y1=1,  # Runs from the middle to the top
-                line=dict(color=group_colors[groups[i]], width=4)
-            )
+            if eval(heatmap_config["group_explaination_line"]["on"]):
+                line_x_pos = 0.51 + (filtered_df_samples.shape[1] * heatmap_config["group_explaination_line"]["line_distance_multiplier"])
 
-            fig.add_annotation(
-                xref="paper", yref="paper",
-                x=fixed_text_x_pos, y=0.75,  # Adjust position near the vertical bar
-                text=f"<br><span style='color:{group_colors[groups[i]]}'>{annotation_text_group_i}</span>",
-                showarrow=False,
-                font=dict(size=12),
-                align="left"
-            )
+                annotation_text_group_i = f"Top {heatmap_n_proteins} proteins higher in <br>{filter_to_str(filter_groups[group1_name], True)}"
+                annotation_text_group_j = f"Top {heatmap_n_proteins} proteins higher in <br>{filter_to_str(filter_groups[group2_name], True)}"
+                
+                fixed_text_x_pos = line_x_pos + heatmap_config["group_explaination_line"]["text_distance_differential"]
 
-            # Add vertical bar and annotation for "Proteins more abundant in group 2"
-            fig.add_shape(
-                type="line",
-                xref="paper", yref="paper",
-                x0=line_x_pos, x1=line_x_pos,  # Vertical line to the right
-                y0=0, y1=0.5,  # Runs from the middle to the bottom
-                line=dict(color=group_colors[groups[j]], width=4)
-            )
+                # Add vertical bar and annotation for "Proteins more abundant in group 1"
+                fig.add_shape(
+                    type="line",
+                    xref="paper", yref="paper",
+                    x0=line_x_pos, x1=line_x_pos,
+                    y0=0.5, y1=1,  # Runs from the middle to the top
+                    line=dict(color=group_colors[groups[i]], width=4)
+                )
 
-            fig.add_annotation(
-                xref="paper", yref="paper",
-                x=fixed_text_x_pos, y=0.25,  # Adjust position near the vertical bar
-                text=f"<br><span style='color:{group_colors[groups[j]]}'>{annotation_text_group_j}</span>",
-                showarrow=False,
-                font=dict(size=12),
-                align="left"
-            )
+                fig.add_annotation(
+                    xref="paper", yref="paper",
+                    x=fixed_text_x_pos, y=0.75,  # Adjust position near the vertical bar
+                    text=f"<br><span style='color:{group_colors[groups[i]]}'>{annotation_text_group_i}</span>",
+                    showarrow=False,
+                    font=dict(size=12),
+                    align="left"
+                )
+
+                # Add vertical bar and annotation for "Proteins more abundant in group 2"
+                fig.add_shape(
+                    type="line",
+                    xref="paper", yref="paper",
+                    x0=line_x_pos, x1=line_x_pos,  # Vertical line to the right
+                    y0=0, y1=0.5,  # Runs from the middle to the bottom
+                    line=dict(color=group_colors[groups[j]], width=4)
+                )
+
+                fig.add_annotation(
+                    xref="paper", yref="paper",
+                    x=fixed_text_x_pos, y=0.25,  # Adjust position near the vertical bar
+                    text=f"<br><span style='color:{group_colors[groups[j]]}'>{annotation_text_group_j}</span>",
+                    showarrow=False,
+                    font=dict(size=12),
+                    align="left"
+                )
 
             fig.update_layout(
                 height=1250,
