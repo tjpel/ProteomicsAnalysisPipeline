@@ -299,7 +299,7 @@ def create_heatmap_viz(filter_groups, comparison_num, analysis_dataset, protein_
 
             temp_analysis = analysis_dataset[new_column_order]
             temp_analysis_samples = temp_analysis.iloc[:, :-2]
-            temp_analysis_samples = temp_analysis_samples.apply(zscore)
+            temp_analysis_samples = temp_analysis_samples.apply(zscore, nan_policy="omit")
             temp_analysis.iloc[:, :-2] = temp_analysis_samples
 
             sig_to_comparison = temp_analysis[temp_analysis[p_val_column] < 0.05]
