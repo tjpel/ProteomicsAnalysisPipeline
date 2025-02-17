@@ -28,7 +28,10 @@ protein_count_data, protein_meta_data, sample_info, study_group_info = get_data_
 pre_pipeline_path = os.path.join(DIR_PATH, config['paths']['no_processing'])
 protein_count_data.to_csv(pre_pipeline_path)
 
-alr_transformed = False
+step_flags = {
+    "transformed": "",
+    "imputed": False
+}
 
 print("Beginning pipeline steps.")
 for step_num, process_info in config['ordered_pipeline'].items():
@@ -48,12 +51,17 @@ for step_num, process_info in config['ordered_pipeline'].items():
         case "Quantile Normalization":
             protein_count_data = perform_quantile_normalization(protein_count_data)
         case r"Impute Missing Values with X% of the Minimum Value of Sample":
+            step_flags["imputed"] = True
             protein_count_data = impute_half_value(protein_count_data, axis=1, percentage_of_min=process_info['Argument'])
         case r"Impute Missing Values with X% of the Minimum Value of Protein":
+            step_flags["imputed"] = True
             protein_count_data = impute_half_value(protein_count_data, axis=0, percentage_of_min=process_info['Argument'])
         case "LogX Transformation":
-            alr_transformed = True
+            step_flags["transformed"] = f"Log{process_info['Argument']}"
             protein_count_data = perform_log(protein_count_data, log=process_info['Argument'])
+        case "Z-score Transformation":
+            step_flags["transformed"] = f"Z-Score"
+            protein_count_data = perform_z_score_transformation(protein_count_data)
         case "Drop Duplicates":
             protein_count_data = drop_duplicates(protein_count_data)
         case _:
@@ -71,7 +79,7 @@ sample_info_path = os.path.join(DIR_PATH, config['paths']['sample_info'])
 sample_info.to_csv(sample_info_path, index=None)
 
 print("Preparing fold change and P-value information.")
-analysis_dataset = prepare_analysis_dataset(alr_transformed)
+analysis_dataset = prepare_analysis_dataset(step_flags)
 
 for comparison_num, groups in config['comparisons'].items():
     print(f"Creating visualizations for comparison {comparison_num}.")
@@ -80,7 +88,7 @@ for comparison_num, groups in config['comparisons'].items():
 
     create_volcano_viz(groups, comparison_num, analysis_dataset)
 
-    create_heatmap_viz(groups, comparison_num, analysis_dataset, protein_meta_data)
+    create_heatmap_viz(groups, comparison_num, analysis_dataset, protein_meta_data, step_flags)
 
 print("Creating final dataset for delivery.")
 output_delivery_dataset(analysis_dataset, protein_meta_data)

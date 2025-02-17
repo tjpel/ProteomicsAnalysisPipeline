@@ -142,7 +142,7 @@ def get_prot_with_sample_info(protein_count_data: pd.DataFrame, sample_info: pd.
     return prot_with_sample_info
 
 @debug
-def prepare_analysis_dataset(alr_transformed: bool) -> pd.DataFrame:
+def prepare_analysis_dataset(step_flags: dict) -> pd.DataFrame:
 
     #If we have log transformed the data previously, we'll then use the transformed data to calculate the following statistics
     #If we haven't previously transformed the data, we'll use the non-transformed data to calculate the following statistics
@@ -168,8 +168,10 @@ def prepare_analysis_dataset(alr_transformed: bool) -> pd.DataFrame:
                 group2_means = {}
                 group1_missing = {}
                 group2_missing = {}
-                group1_imputed = {}
-                group2_imputed = {}
+                if step_flags["imputed"] == True:
+                    group1_imputed = {}
+                    group2_imputed = {}
+
                 for protein in list(group1.index):
                     if isinstance(group1.loc[protein], pd.DataFrame) or isinstance(group2.loc[protein], pd.DataFrame):
                         print(f"Values in primary key column ({PRIMARY_KEY_COL}) are not unique. Please remove duplicate values in this column. This may be done in the configuration file by adding the 'Drop Duplicates' pipeline step.")
@@ -196,7 +198,7 @@ def prepare_analysis_dataset(alr_transformed: bool) -> pd.DataFrame:
                     group1_missing[protein] = f"{group1_protein.isna().sum()} / {len(group1_protein)}"
                     group2_missing[protein] = f"{group2_protein.isna().sum()} / {len(group2_protein)}"
 
-                    if protein in raw_data.index:
+                    if (protein in raw_data.index) and (step_flags["imputed"] == True):
                         group1_imputed[protein] = f"{raw_data.loc[protein, group1.columns].isna().sum()} / {len(group1_protein)}"
                         group2_imputed[protein] = f"{raw_data.loc[protein, group2.columns].isna().sum()} / {len(group2_protein)}"
                 
@@ -216,10 +218,11 @@ def prepare_analysis_dataset(alr_transformed: bool) -> pd.DataFrame:
                 output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} FDR-adj. P-value"] = pd.Series(corrected_p_values_series, index=p_values_series.index)
                 output_df[f"Comparison {comparison_num}: {group1_name} Missing Values"] = pd.Series(group1_missing)
                 output_df[f"Comparison {comparison_num}: {group2_name} Missing Values"] = pd.Series(group2_missing)
-                output_df[f"Comparison {comparison_num}: {group1_name} Imputed Values"] = pd.Series(group1_imputed)
-                output_df[f"Comparison {comparison_num}: {group2_name} Imputed Values"] = pd.Series(group2_imputed)
+                if step_flags["imputed"] == True:
+                    output_df[f"Comparison {comparison_num}: {group1_name} Imputed Values"] = pd.Series(group1_imputed)
+                    output_df[f"Comparison {comparison_num}: {group2_name} Imputed Values"] = pd.Series(group2_imputed)
 
-                if alr_transformed or config['project_information']['file_type'] == "Olink":
+                if step_flags["transformed"] == True or config['project_information']['file_type'] == "Olink":
                     output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] = pd.Series(group1_means) - pd.Series(group2_means)
                 else:
                     output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] = np.log2(pd.Series(group1_means) / pd.Series(group2_means))
@@ -384,6 +387,9 @@ def perform_log(protein_count_data: pd.DataFrame, log: int) -> pd.DataFrame:
             protein_count_data = np.log2(protein_count_data)
 
     return protein_count_data
+
+def perform_z_score_transformation(protein_count_data: pd.DataFrame) -> pd.DataFrame:
+    return protein_count_data.apply(stats.zscore, nan_policy='omit')
 
 def drop_duplicates(protein_count_data: pd.DataFrame) -> pd.DataFrame:
     return protein_count_data[~protein_count_data.index.duplicated(keep='first')].copy()

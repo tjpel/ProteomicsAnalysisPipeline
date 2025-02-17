@@ -3,7 +3,7 @@ from sklearn.preprocessing import StandardScaler
 
 import plotly.express as px
 import plotly.graph_objects as go
-from scipy.stats import zscore
+from scipy import stats
 import pandas as pd
 import json
 import os
@@ -246,7 +246,7 @@ def create_volcano_viz(filter_groups, comparison_num, analysis_dataset):
 
 heatmap_config = config["visualization_behavior"]["heatmap"]
 @debug
-def create_heatmap_viz(filter_groups, comparison_num, analysis_dataset, protein_meta_data):
+def create_heatmap_viz(filter_groups, comparison_num, analysis_dataset, protein_meta_data, step_flags):
 
     filtered_columns = [col for col in analysis_dataset.columns if (
         col.startswith('Sample') or
@@ -298,9 +298,11 @@ def create_heatmap_viz(filter_groups, comparison_num, analysis_dataset, protein_
             new_column_order = group1_columns + group2_columns + [target_column, p_val_column]
 
             temp_analysis = analysis_dataset[new_column_order]
-            temp_analysis_samples = temp_analysis.iloc[:, :-2]
-            temp_analysis_samples = temp_analysis_samples.apply(zscore, nan_policy="omit")
-            temp_analysis.iloc[:, :-2] = temp_analysis_samples
+
+            if step_flags["transformed"] != "Z-Score":
+                temp_analysis_samples = temp_analysis.iloc[:, :-2]
+                temp_analysis_samples = temp_analysis_samples.apply(stats.zscore, nan_policy='omit')
+                temp_analysis.iloc[:, :-2] = temp_analysis_samples
 
             sig_to_comparison = temp_analysis[temp_analysis[p_val_column] < 0.05]
 

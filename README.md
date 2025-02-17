@@ -7,11 +7,11 @@ The purpose of this pipeline is to automatically perform various data cleaning, 
 ### Installation
 This pipeline requires various widely available python packages to run. These packages and versions are outlined in the `requirements.txt` file. These can be easily installed in the following ways:
 
-First, install Python version 3.12 or later.
-Next, install the necessary packages using one of the following methods:
-    Pip: `pip install -r requirements.txt`
-    Conda: With an active conda environment, `conda install --file requirements.txt`
-Finally, if you wish to create `.svg` visualization files, you must install the following library through pip.
+First, install Python version 3.12 or later.<br>
+Next, install the necessary packages using one of the following methods:<br>
+    Pip: `pip install -r requirements.txt`<br>
+    Conda: With an active conda environment, `conda install --file requirements.txt`<br>
+Finally, if you wish to create `.svg` visualization files, you must install the following library through pip.<br>
     `pip install kaleido`
 
 ### Data and Directory Preparation
@@ -47,28 +47,28 @@ Pipeline processes:
 This method drops rows that lack a unique value in the primary key column (`"Assay"` for Olink, `"Modifications in Master Protein" `for TMT Phospho). The row with the first instance of a repeated value (e.g. the row with the lowest index) is kept, and all others are removed. Proteins and values removed this way are **not** added to the "Removed Proteins" intermediate dataset nor the delivery dataset.<br><br>
 
 - **"Remove Proteins With >=X% Values Missing in Each Group"**
-This method removes proteins that are missing a certain proportion of the time to all study groups in a category of study groups.
-**Argument**: Values: One of `[integer, float]` such that `0 <= argument <= 100`. A protein missing for a proportion of samples equal to or greater than this proportion in each study group in a study group category will be removed. 
+This method removes proteins that are missing a certain proportion of the time to all study groups in a category of study groups.<br>
+**Argument**: Values: One of `[integer, float]` such that `0 <= argument <= 100`. A protein missing for a proportion of samples equal to or greater than this proportion in each study group in a study group category will be removed. <br>
 **Example**: If the argument value is set to `60`, and a protein is missing from 60% or more of the samples in study groups 1 and 2 of study group category A, that protein will be removed if category A only contains groups 1 and 2. If category A also contains a study group 3 where the same protein is only missing from 40% of its samples, the protein will not be removed.<br><br>
 
 - **"Remove Proteins With >=X% Values Missing Globally"**
-This method removes proteins that are missing from more than a certain proportion of samples.
+This method removes proteins that are missing from more than a certain proportion of samples.<br>
 **Argument**: Values: One of `[integer, float]` such that `0 <= argument <= 100`. A protein missing for a proportion of samples equal to or greater than this proportion will be removed.  <br><br>
 
 - **"Median Normalization"**
 This method normalizes the values for each sample by subtracting the median value of proteins counts for that sample from each protein count for that sample.<br>
-Where $x_{i,j}$ is the prenormalized count of protein $i$ for sample $j$ and $y_{i,j}$ count of protein $i$ for sample $j$ after normalization;
-$$y_{i,j} = x_{i,j} - \~{x}_{j}$$<br>
+Where $x_{i,j}$ is the prenormalized count of protein $i$ for sample $j$ and $y_{i,j}$ count of protein $i$ for sample $j$ after normalization;<br>
+$$y_{i,j} = x_{i,j} - \~{x}_{j}$$<br><br>
 
 - **"Mean Normalization"**
 This method normalizes the values for each sample by subtracting the mean value of proteins counts for that sample from each protein count for that sample.<br>
-Where $x_{i,j}$ is the prenormalized count of protein $i$ for sample $j$ and $y_{i,j}$ count of protein $i$ for sample $j$ after normalization;
-$$y_{i,j} = x_{i,j} - \={x}_{j}$$<br>
+Where $x_{i,j}$ is the prenormalized count of protein $i$ for sample $j$ and $y_{i,j}$ count of protein $i$ for sample $j$ after normalization;<br>
+$$y_{i,j} = x_{i,j} - \={x}_{j}$$<br><br>
 
 - **"Total Value Normalization"**
 This method normalizes the values for each sample by setting the values for each protein in each sample to be the proportion of the counts of the protein to the sum of all protein counts for that sample.<br>
-Where $x_{i,j}$ is the prenormalized count of protein $i$ for sample $j$ and $y_{i,j}$ count of protein $i$ for sample $j$ after normalization;
-$$y_{i,j} = \frac{x_{i,j}}{\sum_{i=0}^{max(i)}{x_{i,j}}}$$<br>
+Where $x_{i,j}$ is the prenormalized count of protein $i$ for sample $j$ and $y_{i,j}$ count of protein $i$ for sample $j$ after normalization;<br>
+$$y_{i,j} = \frac{x_{i,j}}{\sum_{i=0}^{max(i)}{x_{i,j}}}$$<br><br>
 
 - **"Quantile Normalization"**
 This method normalizes the values for each sample to a quantile normalized value. For more details on quantile normalization, please see [this page](https://en.wikipedia.org/wiki/Quantile_normalization).<br><br>
@@ -76,12 +76,18 @@ This method normalizes the values for each sample to a quantile normalized value
 - **"Impute Missing Values with X% of the Minimum Value of Sample"**
 This method replaces all missing values with a fraction of the minimum value of the sample the missing value is in.
 **Argument**: Values: One of `[integer, float]` such that `0 <= argument`. The proportion of the minimum value of a sample that a missing value will be set to. A value greater than `100` will set missing values to a value greater than the minimum value of the sample.<br><br>
+
 - **"Impute Missing Values with X% of the Minimum Value of Protein"**
-This method replaces all missing values with a fraction of the minimum value of the protein the missing value is in.
+This method replaces all missing values with a fraction of the minimum value of the protein the missing value is in.<br>
 **Argument**: Values: One of `[integer, float]` such that `0 <= argument`. The proportion of the minimum value of a protein that a missing value will be set to. A value greater than `100` will set missing values to a value greater than the minimum value of the protein.<br><br>
 
+- "**<i>Z</i>-Score Transformation"**
+This method transforms all protein counts so that they are <i>Z</i>-score transformed. 
+<i>Z</i>-Score Transformation is definied as the following, where $x_{i,j}$ is the pretransformed count of protein $i$ for sample $j$ and $y_{i,j}$ count of protein $i$ for sample $j$ after normalization;
+$$y_{i,j} = \frac{x_{i,j} - \={x}_{j}}{\sigma_{j}}$$<br><br>
+
 - **"LogX Transformation"**
-This method transforms all protein count values such that the new value will be equal to the log<sub><i>a</i></sub> value of the previous protein count value, where <i>a</i> is the value of this method's argument. If the dataset contains negative values at the time of this process being performed, a pseudo count will first be introduced such that each value will have the (minimum value of the dataset - 1) subtracted from it, resulting in a new minimum value of 1.
+This method transforms all protein count values such that the new value will be equal to the log<sub><i>a</i></sub> value of the previous protein count value, where <i>a</i> is the value of this method's argument. If the dataset contains negative values at the time of this process being performed, a pseudo count will first be introduced such that each value will have the (minimum value of the dataset - 1) subtracted from it, resulting in a new minimum value of 1.<br>
 **Argument**: Values: One of `[2]`. As of now, this method can only perform log<sub>2</sub>() operations. This functionality may be expanded in the future if the need arises.<br><br>
 
 ##### "comparisons"
@@ -163,11 +169,11 @@ This pipeline has a variety of outputs, in both a tabular and visualized format.
 
 There are two main kinds of data outputs: intermediate and final. The final data output can be found in `{project_file}/delivery/data` and is named `Data_With_Analysis.xlsx`. This file contains multiple sheets:
 
-Sheet 1. "Data": This sheet contains the protein metadata and values after the processes performed by the pipeline. Additionally, the "Global Missing" column, which describes the number of missing values for each protein post-pipeline.<br>
-Sheet 2. "Sample Information": This sheet contains information about what samples are in which sample group. This data will be the same as the "Sample Information" sheet from the input.<br>
-Sheet(s) 3 - <i>n</i>. "Comparison <i>n</i>": This sheet contains information about performing a pairwise comparison between all groups in comparison <i>n</i>. First, the values for all samples in study groups relevant to the comparison are given. Then, the number of missing and imputed values out of the total number of samples in the group is given, for each group. Next, the mean value for each protein is given per group. Finally, for each combination of groups, log<sub>2</sub>(Fold Change) value and <i>P</i>-value values are given for each protein.<br>
+Sheet 1. "Data": This sheet contains the protein metadata and values after the processes performed by the pipeline. Additionally, the "Global Missing" column, which describes the number of missing values for each protein post-pipeline.<br><br>
+Sheet 2. "Sample Information": This sheet contains information about what samples are in which sample group. This data will be the same as the "Sample Information" sheet from the input.<br><br>
+Sheet(s) 3 - <i>n</i>. "Comparison <i>n</i>": This sheet contains information about performing a pairwise comparison between all groups in comparison <i>n</i>. First, the values for all samples in study groups relevant to the comparison are given. Then, the number of missing and imputed values out of the total number of samples in the group is given, for each group. Next, the mean value for each protein is given per group. Finally, for each combination of groups, log<sub>2</sub>(Fold Change) value and <i>P</i>-value values are given for each protein.<br><br>
 Sheet <i>n</i>+1. "Removed Proteins": This sheet contains identifiers and values for proteins removed during missing value removal steps (except for "drop_duplicates").
-<br>
+<br><br>
 The intermediate data outputs contain data from part way through the pipeline process. These files can be found in the `{project_file}/data/intermediate` directory. These files contain the following information:
 - `dropped_proteins_list.csv`: This file contains a list of protein identifiers that have been dropped from the analysis for having an number of missing values exceeding the threshold set by functions such as "Remove Proteins With >=X% Values Missing Globally" or "Remove Proteins With >=X% Values Missing in Each Group".
 - `fold_change_dataset.csv`: This file contains the information used to create the "Comparison <i>n</i>" sheets in the final dataset. This includes information such as protein values, number of missing values for a protein in a group, and <i>P</i>-values for all comparisons.
