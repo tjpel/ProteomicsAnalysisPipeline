@@ -84,7 +84,7 @@ This method replaces all missing values with a fraction of the minimum value of 
 - "**<i>Z</i>-Score Transformation"**
 This method transforms all protein counts so that they are <i>Z</i>-score transformed. 
 <i>Z</i>-Score Transformation is definied as the following, where $x_{i,j}$ is the pretransformed count of protein $i$ for sample $j$ and $y_{i,j}$ count of protein $i$ for sample $j$ after normalization;
-$$y_{i,j} = \frac{x_{i,j} - \={x}_{j}}{\sigma_{j}}$$<br><br>
+$$y_{i,j} = \frac{x_{i,j} - \={x}_{j}}{\sigma_j}$$<br><br>
 
 - **"LogX Transformation"**
 This method transforms all protein count values such that the new value will be equal to the log<sub><i>a</i></sub> value of the previous protein count value, where <i>a</i> is the value of this method's argument. If the dataset contains negative values at the time of this process being performed, a pseudo count will first be introduced such that each value will have the (minimum value of the dataset - 1) subtracted from it, resulting in a new minimum value of 1.<br>
