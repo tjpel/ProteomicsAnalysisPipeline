@@ -53,17 +53,32 @@ METADATA_COL = filetype_info_dict["n_metadata_cols"]
 PRIMARY_KEY_COL = filetype_info_dict["primary_key_col"]
 SHEET1_FREEZE_PANES = filetype_info_dict["sheet1_freeze_panes"]
 
-def load_intermediate_csv(prot_intermediate_id: str):
-    if prot_intermediate_id == "sample_info":
-        return pd.read_csv(os.path.join(DIR_PATH, config["paths"][prot_intermediate_id]))
-    
-    return pd.read_csv(os.path.join(DIR_PATH, config["paths"][prot_intermediate_id]), index_col=PRIMARY_KEY_COL)
+data_loader_instance = None
+class DataLoader():
+    loaded_data = {}
+
+    def get_intermediate_data(self, intermediate_id: str) -> pd.DataFrame:
+        if intermediate_id not in self.loaded_data:
+            if (intermediate_id == "sample_info") or (intermediate_id == "study_group_info"):
+                self.loaded_data[intermediate_id] = pd.read_csv(os.path.join(DIR_PATH, config["paths"][intermediate_id]))
+            else:
+                self.loaded_data[intermediate_id] = pd.read_csv(os.path.join(DIR_PATH, config["paths"][intermediate_id]), index_col=PRIMARY_KEY_COL)
+        
+        return self.loaded_data[intermediate_id]
+  
+def get_data_loader():
+    global data_loader_instance
+
+    if data_loader_instance is None:
+        data_loader_instance = DataLoader()
+
+    return data_loader_instance
 
 @debug
 def prepare_group_filtered_dict(prot_intermediate_id: str, study_groups: dict) -> dict:
 
-    protein_count_data = load_intermediate_csv(prot_intermediate_id)
-    sample_data = pd.read_csv(os.path.join(DIR_PATH, config["paths"]['sample_info']))
+    protein_count_data = get_data_loader().get_intermediate_data(prot_intermediate_id)
+    sample_data = get_data_loader().get_intermediate_data("sample_info")
 
     prot_with_sample_info = get_prot_with_sample_info(
         protein_count_data,
@@ -147,21 +162,31 @@ def prepare_analysis_dataset(step_flags: dict) -> pd.DataFrame:
     #If we have log transformed the data previously, we'll then use the transformed data to calculate the following statistics
     #If we haven't previously transformed the data, we'll use the non-transformed data to calculate the following statistics
 
-    output_df = load_intermediate_csv('post_pipeline')
+    output_df = get_data_loader().get_intermediate_data('post_pipeline')
+    study_group_info = get_data_loader().get_intermediate_data('study_group_info')
+    print(study_group_info)
 
     for comparison_num, study_groups in config['comparisons'].items():
 
+        print(comparison_num, study_groups)
         group_filtered_datasets = prepare_group_filtered_dict('post_pipeline', study_groups)
-        raw_data = load_intermediate_csv("no_processing")
+        raw_data = get_data_loader().get_intermediate_data("no_processing")
 
-        groups = [group for group in group_filtered_datasets.keys() if group != "Name"]
+        sample_groups = [group for group in group_filtered_datasets.keys() if group != "Name"]
 
-        for i in range(len(groups)-1):
-            group1_name = groups[i]
-            group1 = group_filtered_datasets[group1_name]['Dataset']
-            for j in range(i + 1, len(groups)):
-                group2_name = groups[j]
-                group2 = group_filtered_datasets[group2_name]['Dataset']
+        for i in range(len(sample_groups)-1):
+            sample_group1_name = sample_groups[i]
+            #use study_groups[group1_name].keys() to get study group IDs
+            sample_group1 = group_filtered_datasets[sample_group1_name]['Dataset']
+            for j in range(i + 1, len(sample_groups)):
+                sample_group2_name = sample_groups[j]
+                sample_group2 = group_filtered_datasets[sample_group2_name]['Dataset']
+
+                dependent_groups = False
+                study_group_names = list(study_groups[sample_group1_name].keys()) + list(study_groups[sample_group2_name].keys())
+                for study_group in study_group_names:
+                    if "Dependent" in study_group_info[study_group_info["Study Group ID"] == study_group]["Study Group Type"].unique():
+                        dependent_groups = True
                 
                 t_test_p_values = {}
                 group1_means = {}
@@ -172,16 +197,24 @@ def prepare_analysis_dataset(step_flags: dict) -> pd.DataFrame:
                     group1_imputed = {}
                     group2_imputed = {}
 
-                for protein in list(group1.index):
-                    if isinstance(group1.loc[protein], pd.DataFrame) or isinstance(group2.loc[protein], pd.DataFrame):
+                for protein in list(sample_group1.index):
+                    if isinstance(sample_group1.loc[protein], pd.DataFrame) or isinstance(sample_group2.loc[protein], pd.DataFrame):
                         print(f"Values in primary key column ({PRIMARY_KEY_COL}) are not unique. Please remove duplicate values in this column. This may be done in the configuration file by adding the 'Drop Duplicates' pipeline step.")
-                        print(f"Duplicate values: {group1[group1.index.duplicated()].index} and/or {group2[group2.index.duplicated()].index}")
+                        print(f"Duplicate values: {sample_group1[sample_group1.index.duplicated()].index} and/or {sample_group2[sample_group2.index.duplicated()].index}")
                         quit()
                     
-                    group1_protein = pd.to_numeric(group1.loc[protein], errors='coerce')
-                    group2_protein = pd.to_numeric(group2.loc[protein], errors='coerce')
+                    group1_protein = pd.to_numeric(sample_group1.loc[protein], errors='coerce')
+                    group1_protein.loc[len(group1_protein)] = group1_protein.iloc[0]-0.1
+                    group2_protein = pd.to_numeric(sample_group2.loc[protein], errors='coerce')
+                    group2_protein.loc[len(group2_protein)] = group2_protein.iloc[0]+0.1
 
-                    t_test_p_values[protein] = stats.ttest_ind(group1_protein, group2_protein, nan_policy='omit').pvalue
+                    if dependent_groups:
+                        ttest = stats.ttest_rel
+                    else:
+                        ttest = stats.ttest_ind
+
+                    t_test_p_values[protein] = ttest(group1_protein, group2_protein, nan_policy='omit').pvalue
+                    
 
                     """
                     if config["analysis_behavior"]["mean_type"] == 'Geometric':
@@ -199,33 +232,34 @@ def prepare_analysis_dataset(step_flags: dict) -> pd.DataFrame:
                     group2_missing[protein] = f"{group2_protein.isna().sum()} / {len(group2_protein)}"
 
                     if (protein in raw_data.index) and (step_flags["imputed"] == True):
-                        group1_imputed[protein] = f"{raw_data.loc[protein, group1.columns].isna().sum()} / {len(group1_protein)}"
-                        group2_imputed[protein] = f"{raw_data.loc[protein, group2.columns].isna().sum()} / {len(group2_protein)}"
+                        group1_imputed[protein] = f"{raw_data.loc[protein, sample_group1.columns].isna().sum()} / {len(group1_protein)}"
+                        group2_imputed[protein] = f"{raw_data.loc[protein, sample_group2.columns].isna().sum()} / {len(group2_protein)}"
                 
                 p_values_series = pd.Series(t_test_p_values)
                 valid_mask = p_values_series.notna()
 
                 # Apply FDR correction only on valid (non-NaN) p-values
+                print(p_values_series)
                 _, p_vals_corrected, _, _ = multipletests(p_values_series[valid_mask].values, alpha=0.05, method='fdr_bh')
 
                 # Create a new series with NaNs in the correct positions
                 corrected_p_values_series = pd.Series(np.nan, index=p_values_series.index)
                 corrected_p_values_series[valid_mask] = p_vals_corrected
 
-                output_df[f"Comparison {comparison_num}: {group1_name} Mean"] = pd.Series(group1_means)
-                output_df[f"Comparison {comparison_num}: {group2_name} Mean"] = pd.Series(group2_means)
-                output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"] = pd.Series(t_test_p_values)
-                output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} FDR-adj. P-value"] = pd.Series(corrected_p_values_series, index=p_values_series.index)
-                output_df[f"Comparison {comparison_num}: {group1_name} Missing Values"] = pd.Series(group1_missing)
-                output_df[f"Comparison {comparison_num}: {group2_name} Missing Values"] = pd.Series(group2_missing)
+                output_df[f"Comparison {comparison_num}: {sample_group1_name} Mean"] = pd.Series(group1_means)
+                output_df[f"Comparison {comparison_num}: {sample_group2_name} Mean"] = pd.Series(group2_means)
+                output_df[f"Comparison {comparison_num}: {sample_group1_name} v. {sample_group2_name} P-value"] = pd.Series(t_test_p_values)
+                output_df[f"Comparison {comparison_num}: {sample_group1_name} v. {sample_group2_name} FDR-adj. P-value"] = pd.Series(corrected_p_values_series, index=p_values_series.index)
+                output_df[f"Comparison {comparison_num}: {sample_group1_name} Missing Values"] = pd.Series(group1_missing)
+                output_df[f"Comparison {comparison_num}: {sample_group2_name} Missing Values"] = pd.Series(group2_missing)
                 if step_flags["imputed"] == True:
-                    output_df[f"Comparison {comparison_num}: {group1_name} Imputed Values"] = pd.Series(group1_imputed)
-                    output_df[f"Comparison {comparison_num}: {group2_name} Imputed Values"] = pd.Series(group2_imputed)
+                    output_df[f"Comparison {comparison_num}: {sample_group1_name} Imputed Values"] = pd.Series(group1_imputed)
+                    output_df[f"Comparison {comparison_num}: {sample_group2_name} Imputed Values"] = pd.Series(group2_imputed)
 
                 if step_flags["transformed"] == True or config['project_information']['file_type'] == "Olink":
-                    output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] = pd.Series(group1_means) - pd.Series(group2_means)
+                    output_df[f"Comparison {comparison_num}: {sample_group1_name} v. {sample_group2_name} Log2 Fold Change"] = pd.Series(group1_means) - pd.Series(group2_means)
                 else:
-                    output_df[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] = np.log2(pd.Series(group1_means) / pd.Series(group2_means))
+                    output_df[f"Comparison {comparison_num}: {sample_group1_name} v. {sample_group2_name} Log2 Fold Change"] = np.log2(pd.Series(group1_means) / pd.Series(group2_means))
 
     output_df = output_df[sorted(output_df.columns, key=sort_key)]
 
@@ -407,8 +441,8 @@ def get_worksheet_name(current_worksheet: int, n_worksheets: int):
 
 @debug
 def output_delivery_dataset(analysis_dataset: pd.DataFrame, protein_meta_data: pd.DataFrame):
-    sample_info = load_intermediate_csv('sample_info')
-    raw_data = load_intermediate_csv('no_processing')
+    sample_info = get_data_loader().get_intermediate_data('sample_info')
+    raw_data = get_data_loader().get_intermediate_data('no_processing')
 
     #split up analysis dataset columns -
     #   sheet 1: samples data + global missing + means
@@ -462,8 +496,8 @@ def output_delivery_dataset(analysis_dataset: pd.DataFrame, protein_meta_data: p
         comparison_num += 1
 
     #sheet n+1: removed proteins w/ original counts
-    raw_counts = load_intermediate_csv("no_processing")
-    dropped_proteins = load_intermediate_csv("dropped_proteins_list")
+    raw_counts = get_data_loader().get_intermediate_data("no_processing")
+    dropped_proteins = get_data_loader().get_intermediate_data("dropped_proteins_list")
 
     sheets.append(raw_counts.loc[dropped_proteins.index, :])
 

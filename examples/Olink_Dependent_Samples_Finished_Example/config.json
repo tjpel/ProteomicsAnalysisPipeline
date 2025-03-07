@@ -1,14 +1,14 @@
 {
     "project_information" : {
         "file_type": "Olink",
-        "relative_path": "examples/Olink_Finished_Example",
-        "raw_data_name": "Fake_Example_Olink_Data.xlsx"
+        "relative_path": "examples/Olink_Dependent_Samples_Finished_Example",
+        "raw_data_name": "Fake_Example_Dependent_Olink_Data.xlsx"
     },
 
     "ordered_pipeline": {
         "1": {
             "Name" : "Remove Proteins with >=X% Values Missing in Each Group",
-            "Argument": 50
+            "Argument": 60
         }
     },
 
@@ -36,15 +36,14 @@
         },
         "3": {
             "Group 1": {
-                "Drug Taken": "No Drug",
-                "Exercise Performed": "No Exercise"
-
+                "Time Point": "T1",
+                "Drug Taken": "Full Dose"
             },
             "Group 2": {
-                "Drug Taken": "Half Dose,Full Dose",
-                "Exercise Performed": "Exercise"
-            },  
-            "Name": "Both Pure Case vs. Pure Control"
+                "Time Point": "T2",
+                "Drug Taken": "Full Dose"
+            },
+            "Name": "Full Dose T1 vs. T2"
         }
     },
 
@@ -55,12 +54,15 @@
         "volcano": {
             "P_value_threshold": 0.01,
             "Log2FC_threshold": 1,
-            "annotations": "True"
+            "annotations": 10
         },
         "heatmap": {
             "n_proteins": 20,
-            "line_distance_multiplier": 0.02,
-            "text_distance_differential": 0.2,
+            "group_explaination_line": {
+                "on": "False",
+                "line_distance_multiplier": 0.02,
+                "text_distance_differential": 0.2
+            },
             "color_scale": "ice"
         }
     },
@@ -75,6 +77,7 @@
         "pre_transformation": "data/intermediate/pre_transformation.csv",
         "post_pipeline": "data/intermediate/post_pipeline.csv",
         "sample_info": "data/intermediate/sample_info.csv",
+        "study_group_info": "data/intermediate/study_group_info.csv",
         "fold_change_dataset": "data/intermediate/fold_change_dataset.csv"
     },
 

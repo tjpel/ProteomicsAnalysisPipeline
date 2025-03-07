@@ -1,0 +1,6 @@
+Study Group,Study Group ID,Study Group Type
+No Drug,Drug Taken,Control
+Half Dose,Drug Taken,Case
+Full Dose,Drug Taken,Case
+No Exercise,Exercise Performed,Control
+Exercise,Exercise Performed,Case
