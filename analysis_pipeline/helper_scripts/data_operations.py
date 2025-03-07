@@ -207,7 +207,6 @@ def prepare_analysis_dataset(step_flags: dict) -> pd.DataFrame:
                     group1_protein.loc[len(group1_protein)] = group1_protein.iloc[0]-0.1
                     group2_protein = pd.to_numeric(sample_group2.loc[protein], errors='coerce')
                     group2_protein.loc[len(group2_protein)] = group2_protein.iloc[0]+0.1
-                    print(group1_protein)
 
                     if dependent_groups:
                         ttest = stats.ttest_rel
