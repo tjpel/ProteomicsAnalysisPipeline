@@ -1,0 +1,2 @@
+The pipeline was changed slightly to accomdate the low sample size in the example dataset. This causes the example output dataset to have
+some incorrect data. Please focus on the structure of the output rather than the exact output itself.

@@ -78,6 +78,9 @@ protein_count_data.to_csv(post_pipeline_path)
 sample_info_path = os.path.join(DIR_PATH, config['paths']['sample_info'])
 sample_info.to_csv(sample_info_path, index=None)
 
+study_group_info_path = os.path.join(DIR_PATH, config['paths']['study_group_info'])
+study_group_info.to_csv(study_group_info_path, index=None)
+
 print("Preparing fold change and P-value information.")
 analysis_dataset = prepare_analysis_dataset(step_flags)
 

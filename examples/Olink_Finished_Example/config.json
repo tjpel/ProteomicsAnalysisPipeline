@@ -9,17 +9,6 @@
         "1": {
             "Name" : "Remove Proteins with >=X% Values Missing in Each Group",
             "Argument": 50
-        },
-        "2": {
-            "Name" : "Median Normalization"
-        },
-        "3": {
-            "Name" : "Impute Missing Values with X% of the Minimum Value of Sample",
-            "Argument": 50
-        },
-        "4": {
-            "Name" : "LogX Transformation",
-            "Argument": 2
         }
     },
 

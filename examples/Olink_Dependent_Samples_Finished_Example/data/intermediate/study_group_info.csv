@@ -1,0 +1,6 @@
+Study Group ID,Study Group,Study Group Type
+Drug Taken,No Drug,Control
+Drug Taken,Half Dose,Case
+Drug Taken,Full Dose,Case
+Time Point,T1,Dependent
+Time Point,T2,Dependent
