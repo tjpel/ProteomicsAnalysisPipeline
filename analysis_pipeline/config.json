@@ -54,14 +54,17 @@
         "delivery_format": "png",
         "volcano": {
             "P_value_threshold": 0.01,
-            "Log2FC_threshold": 1,
-            "annotations": "True"
+            "Log2FC_threshold": 0.5849,
+            "annotations": 4
         },
         "heatmap": {
             "n_proteins": 20,
-            "line_distance_multiplier": 0.02,
-            "text_distance_differential": 0.2,
-            "color_scale": "ice"
+            "group_explaination_line": {
+                "on": "False",
+                "line_distance_multiplier": 0.02,
+                "text_distance_differential": 0.2
+            },
+            "color_scale": "RdBu"
         }
     },
 
@@ -75,7 +78,9 @@
         "pre_transformation": "data/intermediate/pre_transformation.csv",
         "post_pipeline": "data/intermediate/post_pipeline.csv",
         "sample_info": "data/intermediate/sample_info.csv",
-        "fold_change_dataset": "data/intermediate/fold_change_dataset.csv"
+        "fold_change_dataset": "data/intermediate/fold_change_dataset.csv",
+        "study_group_info": "data/intermediate/study_group_info.csv",
+        "dependent_groups": "data/intermediate/dependent_groups.csv"
     },
 
     "debug_behavior": {
