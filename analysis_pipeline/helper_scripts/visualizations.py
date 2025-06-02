@@ -153,34 +153,37 @@ def create_volcano_viz(filter_groups, comparison_num, analysis_dataset):
                 )
             )
 
-            n_annotations = config['visualization_behavior']['volcano']['annotations']
-            if n_annotations:
-                out_of_threshold["Annotation Rank"] = abs(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] * \
-                    -np.log10(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"]))
-                
-                out_of_threshold.sort_values(by=["Annotation Rank"], ascending=False, inplace=True)
+            if len(out_of_threshold) > 0:
+                n_annotations = config['visualization_behavior']['volcano']['annotations']
+                if n_annotations:
+                    out_of_threshold["Annotation Rank +"] = out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] * \
+                        -np.log10(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"])
+                    out_of_threshold["Annotation Rank -"] = -out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"] * \
+                        -np.log10(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"])
+                    to_annotate_pos = out_of_threshold.sort_values(by=["Annotation Rank +"], ascending=False).head(int(n_annotations / 2))
+                    to_annotate_neg = out_of_threshold.sort_values(by=["Annotation Rank -"], ascending=False).head(int(n_annotations / 2))
+                    to_annotate = pd.concat([to_annotate_pos, to_annotate_neg])
 
+                    fig.add_trace(
+                        go.Scatter(
+                            x=to_annotate[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"],
+                            y=-np.log10(to_annotate[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"]),
+                            mode="markers+text",
+                            text=to_annotate.index,  # Protein name as index
+                            textposition="top center",
+                            marker=dict(color="red", size=5)
+                            )
+                    )
 
+                #plot sig. points with no annotations 
                 fig.add_trace(
                     go.Scatter(
-                        x=out_of_threshold.head(n_annotations)[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"],
-                        y=-np.log10(out_of_threshold.head(n_annotations)[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"]),
-                        mode="markers+text",
-                        text=out_of_threshold.index,  # Protein name as index
-                        textposition="top center",
+                        x=out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"],
+                        y=-np.log10(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"]),
+                        mode="markers",
                         marker=dict(color="red", size=5)
-                        )
+                    )
                 )
-
-            #plot sig. points with no annotations 
-            fig.add_trace(
-                go.Scatter(
-                    x=out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} Log2 Fold Change"],
-                    y=-np.log10(out_of_threshold[f"Comparison {comparison_num}: {group1_name} v. {group2_name} P-value"]),
-                    mode="markers",
-                    marker=dict(color="red", size=5)
-                )
-            )
 
 
             x_center = 0

@@ -164,11 +164,9 @@ def prepare_analysis_dataset(step_flags: dict) -> pd.DataFrame:
 
     output_df = get_data_loader().get_intermediate_data('post_pipeline')
     study_group_info = get_data_loader().get_intermediate_data('study_group_info')
-    print(study_group_info)
 
     for comparison_num, study_groups in config['comparisons'].items():
 
-        print(comparison_num, study_groups)
         group_filtered_datasets = prepare_group_filtered_dict('post_pipeline', study_groups)
         raw_data = get_data_loader().get_intermediate_data("no_processing")
 
@@ -239,7 +237,6 @@ def prepare_analysis_dataset(step_flags: dict) -> pd.DataFrame:
                 valid_mask = p_values_series.notna()
 
                 # Apply FDR correction only on valid (non-NaN) p-values
-                print(p_values_series)
                 _, p_vals_corrected, _, _ = multipletests(p_values_series[valid_mask].values, alpha=0.05, method='fdr_bh')
 
                 # Create a new series with NaNs in the correct positions
